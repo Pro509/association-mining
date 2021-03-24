@@ -5,178 +5,200 @@ Created on Mon Mar 22 20:54:13 2021
 @author: Aditya Sarkar, Sahil Verma, Pritish Dugar
 """
 
+## # Apriori algorithm
+#
+## import itertools for creating iterators for efficient looping
 import itertools
-
-"""prompt user to enter support and confidence values in percent"""
-
-support = int(input("Please enter support value in %: "))
-confidence = int(input("Please enter confidence value in %: "))
-
-"""Compute candidate 1-itemset"""
-C1 = {}
-"""total number of transactions contained in the file"""
-transactions = 0
-D = []
-T = []
-with open("data5.txt", "r") as f:
-    for line in f:
-        T = []
-        transactions += 1
-        for word in line.split():
-            T.append(word)
-            if word not in C1.keys():
-                C1[word] = 1
-            else:
-                count = C1[word]
-                C1[word] = count + 1
-        D.append(T)
-print ("-------------------------TEST DATASET----------------------------")
-print (D)
-print ("-----------------------------------------------------------------")
-#print "--------------------CANDIDATE 1-ITEMSET------------------------- "
-#print C1
-#print "-----------------------------------------------------------------"
-
-"""Compute frequent 1-itemset"""
-L1 = []
-for key in C1:
-    if (100 * C1[key]/transactions) >= support:
-        list = []
-        list.append(key)
-        L1.append(list)
-print ("----------------------FREQUENT 1-ITEMSET-------------------------")
-print (L1)
-print ("-----------------------------------------------------------------")
-
-"""apriori_gen function to compute candidate k-itemset, (Ck) , using frequent (k-1)-itemset, (Lk_1)"""
- 
-def apriori_gen(Lk_1, k):
-    length = k
-    Ck = [] 
-    for list1 in Lk_1:
-        for list2 in Lk_1:
-            count = 0
-            c = []
-            if list1 != list2:
-                while count < length-1:
-                    if list1[count] != list2[count]:
-                        break
-                    else:
-                        count += 1
-                else:
-                    if list1[length-1] < list2[length-1]:
-                        for item in list1:
-                            c.append(item)
-                        c.append(list2[length-1])
-                        if not has_infrequent_subset(c, Lk_1, k):
-                            Ck.append(c) 
-                            c = []
-    return Ck
-
-"""function to compute 'm' element subsets of a set S"""
-
-def findsubsets(S,m):
-    return set(itertools.combinations(S, m))
-
-"""has_infrequent_subsets function to determine if pruning is required to remove unfruitful candidates (c) using the Apriori property, with prior knowledge of frequent (k-1)-itemset (Lk_1)"""
-   
-def has_infrequent_subset(c, Lk_1, k):
-    list = []
-    list = findsubsets(c,k)
-    for item in list: 
-        s = []
-        for l in item:
-            s.append(l)
-        s.sort()
-        if s not in Lk_1:
-            return True
-    return False
+#
+## import numpy
+import numpy as np
+import operator
+from collections import defaultdict
+#
+## Add min support
+min_support = 2
+confident = 2
+#
+## Reading the data file
+#with open('retail.txt', "r") as f:
+#    lines = f.readlines()
+#f.close()
+#
+#item_counts = {}
+#
+## Find the candidate item
+#for line in lines:
+#    line = line.split(',')
+#    for item in line:
+#        if item not in item_counts.keys():
+#            item_counts[item] = 1
+#        else:
+#            item_counts[item] += 1
+#
+## loop through the items and if it is more than the minimum support, then its frequent
+## L(i) is the unwanted sets and C(r) is the candidate itemset
+#frequent_items = list()
+#frequent_list = list()
+#
+#print('------Candidate 1-----')
+#for key in sorted(item_counts):
+#    print(key, " : ", item_counts[key])
+#
+#
+#print(' ###### List Item 1 ######')
+#for i in sorted(item_counts):
+#    # Check if the item is greater than the threshold
+#    if (item_counts[i] >= min_support):
+#        print(key, " : ", item_counts[key])
+#        # Check if it's not present in the frequent list
+#        if i not in frequent_list:
+#            # Add it to the frequent list
+#            frequent_items.append(i)
+#            frequent_list.append(i)
+#
+## Creating a new list
+#frequent_new_list = list()
+#
+#while (confident <= len(frequent_list)):
+#    print('#### Candidate', confident, '##### ')
+#    # returns r length subsequences of elements from the input iterable
+#    for k in itertools.combinations(frequent_list, confident):
+#        for line in lines:
+#            line = line.split(',')
+#            if k not in item_counts:
+#                item_counts[k] = 0
+#            # Check if it already exists in the previous sets
+#            if set(k).issubset(set(line)):
+#                # If present, increment the value
+#                item_counts[k] += 1
+#        print(k, item_counts[k])
+#
+#    print("\n\n")
+#    print('##### List Item', confident, '#### ')
+#
+#    for k in itertools.combinations(frequent_list, confident):
+#        if item_counts[k] >= min_support:
+#            print(k, " : ", item_counts[k])
+#            frequent_items.append(k)
+#            for ss in k:
+#                if ss not in frequent_new_list:
+#                    frequent_new_list.append(ss)
+#
+#    frequent_list, frequent_new_list, confident = frequent_new_list, [], confident + 1
+#
+#
+#print("Most frequent sets are: \n", frequent_items)
 
 
-"""frequent_itemsets function to compute all frequent itemsets"""
+# Previous approach -> manual works till 3rd phase
 
-def frequent_itemsets():
-    k = 2
-    Lk_1 = []
-    Lk = []
-    L = []
-    count = 0
-    transactions = 0
-    for item in L1:
-        Lk_1.append(item)
-    while Lk_1 != []:
-        Ck = []
-        Lk = []
-        Ck = apriori_gen(Lk_1, k-1)
-        #print "-------------------------CANDIDATE %d-ITEMSET---------------------" % k
-        #print "Ck: %s" % Ck
-        #print "------------------------------------------------------------------"
-        for c in Ck:
-            count = 0
-            transactions = 0
-            s = set(c)
-            for T in D:
-                transactions += 1
-                t = set(T)
-                if s.issubset(t) == True:
-                    count += 1
-            if (100 * count/transactions) >= support:
-                c.sort()
-                Lk.append(c)
-        Lk_1 = []
-        print ("-----------------------FREQUENT %d-ITEMSET------------------------" % k)
-        print (Lk)
-        print ("------------------------------------------------------------------")
-        for l in Lk:
-            Lk_1.append(l)
-        k += 1
-        if Lk != []:
-            L.append(Lk)
-    
-    return L
-     
-        
-"""generate_association_rules function to mine and print all the association rules with given support and confidence value"""
+item_counts = defaultdict(int)
 
-def generate_association_rules():
-    s = []
-    r = []
-    length = 0
-    count = 1
-    inc1 = 0
-    inc2 = 0
-    num = 1
-    m = []
-    L= frequent_itemsets()
-    print ("---------------------ASSOCIATION RULES------------------")
-    print ("RULES \t SUPPORT \t CONFIDENCE")
-    print ("--------------------------------------------------------")
-    for list in L:
-        for l in list:
-            length = len(l)
-            count = 1
-            while count < length: 
-                s = []
-                r = findsubsets(l,count)
-                count += 1
-                for item in r:
-                    inc1 = 0
-                    inc2 = 0
-                    s = []
-                    m = []
-                    for i in item:
-                        s.append(i)
-                    for T in D:
-                        if set(s).issubset(set(T)) == True:
-                            inc1 += 1
-                        if set(l).issubset(set(T)) == True:
-                            inc2 += 1
-                    if 100*inc2/inc1 >= confidence:
-                        for index in l:
-                            if index not in s:
-                                m.append(index)
-                        print ("Rule#  %d : %s ==> %s %d %d" %(num, s, m, 100*inc2/len(D), 100*inc2/inc1))
-                        num += 1  
+ # read the dataset
+with open('retail.txt') as f:
+     lines = f.readlines()
 
-generate_association_rules()   
-print ("--------------------------------------------------------")
+f.close()
+
+
+def normalize_group(*args):
+     return str(sorted(args))
+
+
+def generate_pairs(*args):
+     pairs = []
+     for i in range(len(args) - 1):
+         for j in range(i + 1, len(args)):
+             pairs.append(normalize_group(args[i], args[j]))
+         return pairs
+
+
+ # Find the candidate item
+for line in lines:
+     for item in line.split():
+         item_counts[item] += 1
+
+ # loop through the items and if it is more than the minimum support, then its frequent
+frequent_items = set()
+for key in item_counts:
+     if item_counts[key] > min_support:
+         frequent_items.add(key)
+
+ # adding a default dict to keep count of the canidate pairs
+pair_counts = defaultdict(int)
+
+ # doing the second pass on the data
+for line in lines:
+     items = line.split()
+     # print(items)
+     # iterate through the new list with two pointers
+     for i in range(len(items) - 1):
+         # Is the first item frequent, if not then move on
+         if items[i] not in frequent_items:
+             pass
+         # Is the second item frequent, if not then move on
+         for j in range(i + 1, len(items)):
+             if items[j] not in frequent_items:
+                 pass
+             # sort the arguments and stringify them
+             pair = normalize_group(items[i], items[j])
+             pair_counts[pair] += 1
+
+
+ # frequent pairs
+frequent_pairs = set()
+for key in pair_counts:
+     if pair_counts[key] > min_support:
+         frequent_pairs.add(key)
+ # print(frequent_pairs)
+ # Third pass
+ # find candiate triple
+ # adding a default dict to keep count of the canidate pairs
+triple_counts = defaultdict(int)
+for line in lines:
+     items = line.split()
+
+     # iterate through the new list with two pointers
+     for i in range(len(items) - 2):
+         # Is the first item frequent, if not then move on
+         if items[i] not in frequent_items:
+             pass
+
+         # Is the second item frequent, if not then move on
+         for j in range(i + 1, len(items) - 1):
+
+             if items[j] not in frequent_items:
+                 pass
+
+             first_pair = normalize_group(items[i], items[j])
+             if first_pair not in frequent_items:
+                 pass
+
+             for k in range(j + 1, len(items)):
+                 if items[k] not in frequent_items:
+                     pass
+
+                 # Checking for all pairs are frequent or not
+                 pairs = generate_pairs(items[i], items[j], items[k])
+                 if any(pair not in frequent_pairs for pair in pairs):
+                     pass
+
+                 triple = normalize_group(items[i], items[j], items[k])
+                 triple_counts[triple] += 1
+ # frequent triples
+frequent_triples = set()
+for key in triple_counts:
+     if triple_counts[key] > min_support:
+         frequent_triples.add(key)
+
+triple_counts = {k: v for k, v in triple_counts.items() if v > min_support}
+pair_counts = {k: v for k, v in pair_counts.items() if v > min_support}
+
+sorted_triples = sorted(triple_counts.items(), key=operator.itemgetter(1))
+sorted_pairs = sorted(pair_counts.items(), key=operator.itemgetter(1))
+
+for entry in sorted_pairs:
+     print('{0}: {1}'.format(entry[0], entry[1]))
+
+for entry in sorted_triples:
+     print('{0}: {1}'.format(entry[0], entry[1]))
